@@ -1,5 +1,6 @@
-﻿using System.Data;
-using System.Data.SqlClient;
+﻿using System;
+using System.Data;
+using Microsoft.Data.SqlClient;
 using AdventureWorks.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,13 +19,21 @@ namespace AdventureWorks.Data.Extensions
                 .Configure<IConfiguration>((settings, configuration) =>
                 {
                     configuration.GetSection("DatabaseSettings").Bind(settings);
+/*
+                    var databaseConnectionString = configuration.GetConnectionString("DatabaseConnectionString");
+
+                    settings = new DatabaseSettings
+                    {
+                        DbConnectionStringName = databaseConnectionString
+                    };
+*/
                 });
 
             services.AddScoped<IDbConnection>(_ =>
             {
-                var settings = _.GetService<DatabaseSettings>();
+                string cs = Environment.GetEnvironmentVariable("DatabaseSettings:DatabaseConnectionString", EnvironmentVariableTarget.Process);
 
-                return new SqlConnection(settings.DbConnectionStringName);
+                return new SqlConnection(cs);
             });
 
             services.AddTransient<IDocumentRepository, DocumentRepository>();

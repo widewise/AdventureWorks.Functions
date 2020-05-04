@@ -28,24 +28,33 @@ namespace AdventureWorks.Services.Documents
             var fileExtension = Path.GetExtension(fullFileName);
 
             var documentId = Guid.NewGuid();
-            var documentNode = _repository.GetNewDocumentNode(parentNode);
-            return new Document
+            try
             {
-                Id = documentId,
-                ModifiedDate = DateTime.UtcNow,
-                DocumentNode = documentNode,
-                DocumentLevel = documentLevel,
-                Title = title,
-                Owner = 220,
-                FolderFlag = documentLevel > 0,
-                FileName = fileName,
-                FileExtension = fileExtension,
-                Revision = "0",
-                ChangeNumber = 0,
-                Status = 2,
-                DocumentSummary = documentSummary,
-                DocumentData = documentData
-            };
+                var documentNode = _repository.GetNewDocumentNode(parentNode);
+
+                return new Document
+                {
+                    Id = documentId,
+                    ModifiedDate = DateTime.UtcNow,
+                    DocumentNode = documentNode,
+                    DocumentLevel = documentLevel,
+                    Title = title,
+                    Owner = 220,
+                    FolderFlag = documentLevel > 0,
+                    FileName = fileName,
+                    FileExtension = fileExtension,
+                    Revision = "0",
+                    ChangeNumber = 0,
+                    Status = 2,
+                    DocumentSummary = documentSummary,
+                    DocumentData = documentData
+                };
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw e;
+            }
         }
 
         public Document CreateDirectoryDocument(

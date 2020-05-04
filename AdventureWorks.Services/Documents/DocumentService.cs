@@ -61,7 +61,7 @@ namespace AdventureWorks.Services.Documents
             {
                 var document = CreateDirectory(directoryPart, documentLevel, parentNode, ref newDirectory);
 
-                parentNode = document.DocumentNode;
+                parentNode = document.DocumentNode ?? SqlHierarchyId.GetRoot();
 
                 documentLevel++;
             }

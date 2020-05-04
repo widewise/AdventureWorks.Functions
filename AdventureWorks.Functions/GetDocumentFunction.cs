@@ -26,27 +26,42 @@ namespace AdventureWorks.Functions
             HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
-            string fileName = req.Query["name"];
-            string nodeString = req.Query["node"].ToString();
-            SqlHierarchyId? node = !string.IsNullOrWhiteSpace(nodeString)
-                ? SqlHierarchyId.Parse(nodeString)
-                : (SqlHierarchyId?) null;
-
-            string rowguidString = req.Query["rowguid"];
-            Guid? rowguid = !string.IsNullOrWhiteSpace(nodeString)
-                ? Guid.Parse(nodeString)
-                : (Guid?) null;
-
-            var document = _documentService.Get(fileName, node, rowguid);
-
-            if (document.DocumentData == null)
+            try
             {
-                throw new Exception("Document is empty");
-            }
+                log.LogInformation("Getting document ...");
 
-            return new FileContentResult(document.DocumentData, "application/msword");
+                string fileName = req.Query["name"];
+                string nodeString = req.Query["node"].ToString();
+                SqlHierarchyId? node = !string.IsNullOrWhiteSpace(nodeString)
+                    ? SqlHierarchyId.Parse(nodeString)
+                    : (SqlHierarchyId?)null;
+
+                string rowguidString = req.Query["rowguid"];
+                Guid? rowguid = !string.IsNullOrWhiteSpace(rowguidString)
+                    ? Guid.Parse(rowguidString)
+                    : (Guid?)null;
+
+                var document = _documentService.Get(fileName, node, rowguid);
+
+                if(document == null)
+                {
+                    throw new Exception("Document not found.");
+                }
+
+                if (document.DocumentData == null)
+                {
+                    throw new Exception("Document is empty");
+                }
+
+                log.LogInformation($"Document '{document.FileName}' was successful loaded.");
+
+                return new FileContentResult(document.DocumentData, "application/msword");
+            }
+            catch (Exception e)
+            {
+                log.LogError("Error in document loading process", e);
+                throw;
+            }
         }
     }
 }

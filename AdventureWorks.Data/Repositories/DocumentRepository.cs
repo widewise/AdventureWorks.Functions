@@ -1,7 +1,10 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Text;
 using AdventureWorks.Data.Models;
 using Dapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Types;
 
 namespace AdventureWorks.Data.Repositories
@@ -9,10 +12,12 @@ namespace AdventureWorks.Data.Repositories
     internal class DocumentRepository : IDocumentRepository
     {
         private const string GetSql =
-            "SELECT [DocumentNode],[DocumentLevel],[Title],[Owner],[FolderFlag],[FileName],[FileExtension],[Revision],[ChangeNumber],[Status],[DocumentSummary],[Document] AS DocumentData,[rowguid] AS Id,[ModifiedDate] FROM [Production].[Document] WHERE 1=1";
+            "SELECT convert(nvarchar(20),[DocumentNode]) AS DocumentNode,[DocumentLevel],[Title],[Owner],[FolderFlag],[FileName],[FileExtension],[Revision],[ChangeNumber],[Status],[DocumentSummary],[Document] AS DocumentData,[rowguid] AS Id,[ModifiedDate] FROM [Production].[Document] WHERE 1=1";
 
         private const string GetNewDocumentNoteSql =
-            "@ParentNode.GetDescendant((SELECT MAX([DocumentNode]) FROM [Production].[Document] WHERE [DocumentNode].GetAncestor(1) = @ParentNode), NULL)";
+            @"DECLARE @DocumentNode hierarchyid
+SET @DocumentNode = @ParentNode;
+SELECT convert(nvarchar(20), @DocumentNode.GetDescendant((SELECT MAX([DocumentNode]) FROM [Production].[Document] WHERE [DocumentNode].GetAncestor(1) = @DocumentNode), NULL));";
 
         private const string InsertSql =
             @"INSERT INTO [Production].[Document] ([DocumentNode],[Title],[Owner],[FolderFlag],[FileName],[FileExtension],[Revision],[ChangeNumber],[Status],[DocumentSummary],[Document],[rowguid],[ModifiedDate])
@@ -29,10 +34,10 @@ namespace AdventureWorks.Data.Repositories
         public Document Get(DocumentSpecification specification)
         {
             var queryBuilder = new StringBuilder(GetSql);
-
-            if (string.IsNullOrEmpty(specification.FileName))
+            var parameters = new List<SqlParameter>();
+            if (!string.IsNullOrEmpty(specification.FileName))
             {
-                queryBuilder.Append($" AND [FileName] = @FileName");
+                queryBuilder.Append($" AND LOWER([FileName]) = LOWER(@FileName)");
             }
 
             if (specification.DocumentLevel.HasValue)
@@ -50,27 +55,50 @@ namespace AdventureWorks.Data.Repositories
                 queryBuilder.Append($" AND [rowguid] = @Id");
             }
 
-            var command = new CommandDefinition(
-                commandText: queryBuilder.ToString(),
+            var result = _connection.QueryFirstOrDefault<dynamic>(queryBuilder.ToString(),
                 new
                 {
                     specification.FileName,
-                    Node = specification.Node,
+                    ParentNode = specification.ParentNode.ToString(),
+                    Node = specification.Node.ToString(),
                     specification.Id
                 });
 
-            return _connection.QueryFirst<Document>(command);
+            if(result == null)
+            {
+                return null;
+            }
+
+            var document = new Document();
+            document.DocumentNode = SqlHierarchyId.Parse(result.DocumentNode);
+            document.DocumentLevel = Convert.ToInt32(result.DocumentLevel);
+            document.Title = result.Title.ToString();
+            document.Owner = Convert.ToInt32(result.Owner);
+            document.FolderFlag = Convert.ToBoolean(result.FolderFlag);
+            document.FileName = result.FileName.ToString();
+            document.FileExtension = result.FileExtension.ToString();
+            document.Revision = result.Revision.ToString();
+            document.ChangeNumber = Convert.ToInt32(result.ChangeNumber);
+            document.Status = Convert.ToInt32(result.Status);
+            document.DocumentSummary = result.DocumentSummary.ToString();
+            document.DocumentData = (byte[])result.DocumentData;
+            document.Id = Guid.Parse(result.Id.ToString());
+            document.ModifiedDate = Convert.ToDateTime(result.ModifiedDate);
+
+            return document;
         }
 
         public void Add(Document document)
         {
+            var nodeString = document.DocumentNode.ToString();
             var command = new CommandDefinition(
                 commandText: InsertSql,
                 new
                 {
                     document.Id,
                     document.ModifiedDate,
-                    document.DocumentNode,
+                    DocumentNode = nodeString,
+                    document.Owner,
                     document.Title,
                     document.FolderFlag,
                     document.FileName,
@@ -91,10 +119,10 @@ namespace AdventureWorks.Data.Repositories
                 commandText: GetNewDocumentNoteSql,
                 new
                 {
-                    ParentNode = parentNode,
+                    ParentNode = parentNode.ToString(),
                 });
 
-            return _connection.QuerySingle<SqlHierarchyId>(command);
+            return SqlHierarchyId.Parse(_connection.QuerySingle<string>(command).ToString());
         }
     }
 }

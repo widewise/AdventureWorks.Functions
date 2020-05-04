@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Newtonsoft.Json;
+using AdventureWorks.Services.FileNotifications;
 
 namespace AdventureWorks.Services.Images
 {
@@ -44,6 +45,22 @@ namespace AdventureWorks.Services.Images
             await queue.AddMessageAsync(message);
 
             return azureFileName;
+        }
+
+        public async Task<byte[]> DownloadFile(string fileName)
+        {
+            var blobClient = _account.CreateCloudBlobClient();
+            var cloudBlobContainer = blobClient.GetContainerReference(_settings.BlobContainerName.ToLower());
+            await cloudBlobContainer.CreateIfNotExistsAsync();
+
+            var fileBlob = cloudBlobContainer.GetBlockBlobReference(fileName);
+
+            using (var ms = new MemoryStream())
+            {
+                await fileBlob.DownloadToStreamAsync(ms);
+
+                return ms.ToArray();
+            }
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace AdventureWorks.Services.Images
+﻿namespace AdventureWorks.Services.FileNotifications
 {
     public static class FileNotificationFactory
     {
@@ -10,7 +8,7 @@ namespace AdventureWorks.Services.Images
             {
                 FileName = fileName,
                 AzureBlobFileName = azureFileName,
-                FileExtension = Path.GetExtension(fileName)
+                DocumentSummary = "This is test Azure Functions."
             };
         }
     }

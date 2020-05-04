@@ -23,4 +23,24 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(OutDir)$(ProjectName).deps.json $(OutDir)bin\function.deps.json" />
+    <Exec Command="copy $(OutDir)local.settings.json $(OutDir)bin\local.settings.json" />
+  </Target>
+  <Target Name="PostPublish" BeforeTargets="Publish">
+    <Exec Command="copy $(PublishDir)$(ProjectName).deps.json $(PublishDir)bin\function.deps.json" />
+  </Target>
+
+  <!-- For publish -->
+  <ItemGroup>
+    <None Include="$(USERPROFILE)\.nuget\packages\system.data.sqlclient\4.6.0\runtimes\win\lib\netcoreapp2.1\System.Data.SqlClient.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <!-- For local debug -->
+  <Target Name="CopyToBin" BeforeTargets="Build">
+    <Copy SourceFiles="$(USERPROFILE)\.nuget\packages\system.data.sqlclient\4.6.0\runtimes\win\lib\netcoreapp2.1\System.Data.SqlClient.dll" DestinationFolder="$(OutputPath)\bin" />
+  </Target>  
+  
+  
 </Project>

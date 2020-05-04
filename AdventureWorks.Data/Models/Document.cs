@@ -9,7 +9,7 @@ namespace AdventureWorks.Data.Models
 
         public DateTime ModifiedDate { get; set; }
 
-        public SqlHierarchyId DocumentNode { get; set; }
+        public SqlHierarchyId? DocumentNode { get; set; }
 
         public int DocumentLevel { get; set; }
 

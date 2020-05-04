@@ -1,9 +1,10 @@
-﻿using AdventureWorks.Services.Documents;
+﻿using System;
+using AdventureWorks.Services.Documents;
 using AdventureWorks.Services.FileNotifications;
 using AdventureWorks.Services.Images;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.WindowsAzure.Storage;
+
 
 namespace AdventureWorks.Services.Extensions
 {
@@ -14,11 +15,14 @@ namespace AdventureWorks.Services.Extensions
         /// </summary>
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
-            services.AddOptions<FileStoreSettings>()
-                .Configure<IConfiguration>((settings, configuration) =>
-                {
-                    configuration.GetSection("FileStoreSettings").Bind(settings);
-                });
+            services.AddSingleton(_ =>
+            {
+                string azureWebJobsStorage = Environment.GetEnvironmentVariable("FileStoreSettings:AzureWebJobsStorage", EnvironmentVariableTarget.Process);
+                string blobContainerName = Environment.GetEnvironmentVariable("FileStoreSettings:BlobContainerName", EnvironmentVariableTarget.Process);
+                string queueName = Environment.GetEnvironmentVariable("FileStoreSettings:QueueName", EnvironmentVariableTarget.Process);
+
+                return new FileStoreSettings(azureWebJobsStorage, blobContainerName, queueName);
+            });
 
             services.AddTransient<IFileNotificationSerializer, FileNotificationSerializer>();
             services.AddTransient<IDocumentFactory, DocumentFactory>();

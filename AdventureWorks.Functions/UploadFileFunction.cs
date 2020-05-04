@@ -31,24 +31,23 @@ namespace AdventureWorks.Functions
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            var formdata = await req.ReadFormAsync();
 
-            await _fileStore.Save("", req.Body);
+            string name = formdata["name"];
+
+            var file = req.Form.Files["file"];
+            using (var stream = file.OpenReadStream())
+            {
+                await _fileStore.Save(name, stream);
+            }
+
+                
 
             //var provider = new MultipartMemoryStreamProvider();
             //await req.Content.ReadAsMultipartAsync(provider);
             //var file = provider.Contents.First();
             //var fileInfo = file.Headers.ContentDisposition;
             //var fileData = await file.ReadAsByteArrayAsync();
-
-
-
-
-
-            string name = req.Query["name"];
-
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
 
             string responseMessage = string.IsNullOrEmpty(name)
                 ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
