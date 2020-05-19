@@ -31,6 +31,9 @@ namespace AdventureWorks.Functions
                 log.LogInformation("Getting document ...");
 
                 string fileName = req.Query["name"];
+
+                string content = req.Query["content"];
+
                 string nodeString = req.Query["node"].ToString();
                 SqlHierarchyId? node = !string.IsNullOrWhiteSpace(nodeString)
                     ? SqlHierarchyId.Parse(nodeString)
@@ -41,7 +44,7 @@ namespace AdventureWorks.Functions
                     ? Guid.Parse(rowguidString)
                     : (Guid?)null;
 
-                var document = _documentService.Get(fileName, node, rowguid);
+                var document = _documentService.Get(fileName, content, node, rowguid);
 
                 if(document == null)
                 {

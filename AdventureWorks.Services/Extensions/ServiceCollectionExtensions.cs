@@ -24,6 +24,17 @@ namespace AdventureWorks.Services.Extensions
                 return new FileStoreSettings(azureWebJobsStorage, blobContainerName, queueName);
             });
 
+            services.AddSingleton(_ =>
+            {
+                string serviceName = Environment.GetEnvironmentVariable("SearchIndexSettings:ServiceName", EnvironmentVariableTarget.Process);
+                string sqlIndexName = Environment.GetEnvironmentVariable("SearchIndexSettings:SqlIndexName", EnvironmentVariableTarget.Process);
+                string blobIndexName = Environment.GetEnvironmentVariable("SearchIndexSettings:BlobIndexName", EnvironmentVariableTarget.Process);
+                string serviceApiKey = Environment.GetEnvironmentVariable("SearchIndexSettings:ServiceApiKey", EnvironmentVariableTarget.Process);
+
+                return new SearchIndexSettings(serviceName, sqlIndexName, blobIndexName, serviceApiKey);
+            });
+
+
             services.AddTransient<IFileNotificationSerializer, FileNotificationSerializer>();
             services.AddTransient<IDocumentFactory, DocumentFactory>();
             services.AddTransient<IDocumentService, DocumentService>();

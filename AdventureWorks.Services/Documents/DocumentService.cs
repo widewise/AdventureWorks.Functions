@@ -1,7 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using AdventureWorks.Data.Models;
 using AdventureWorks.Data.Repositories;
+using Microsoft.Azure.Search;
 using Microsoft.SqlServer.Types;
 
 namespace AdventureWorks.Services.Documents
@@ -10,13 +13,16 @@ namespace AdventureWorks.Services.Documents
     {
         private readonly IDocumentFactory _factory;
         private readonly IDocumentRepository _repository;
+        private readonly SearchIndexSettings _searchIndexSettings;
 
         public DocumentService(
             IDocumentFactory factory,
-            IDocumentRepository repository)
+            IDocumentRepository repository,
+            SearchIndexSettings searchIndexSettings)
         {
             _factory = factory;
             _repository = repository;
+            _searchIndexSettings = searchIndexSettings;
         }
 
         public Guid Create(DocumentCreateParameters parameters)
@@ -98,14 +104,64 @@ namespace AdventureWorks.Services.Documents
             return document;
         }
 
-        public Document Get(string fileName, SqlHierarchyId? node, Guid? id)
+        public Document Get(string fileName, string content, SqlHierarchyId? node, Guid? id)
         {
+            if (!id.HasValue && !string.IsNullOrEmpty(content))
+            {
+                var searchFileName = SearchInFileContent(content);
+                if (!string.IsNullOrEmpty(searchFileName))
+                {
+                    return _repository.Get(new DocumentSpecification
+                    {
+                        FileName = searchFileName
+                    });
+                }
+            }
+
+            if (!id.HasValue && !string.IsNullOrEmpty(fileName))
+            {
+                var searchId = SearchDocument(fileName);
+                if (searchId.HasValue)
+                {
+                    return _repository.Get(new DocumentSpecification
+                    {
+                        Id = searchId
+                    });
+                }
+            }
+
             return _repository.Get(new DocumentSpecification
             {
                 FileName = fileName,
                 Node = node,
                 Id = id
             });
+        }
+
+        private string SearchInFileContent(string content)
+        {
+            using (SearchIndexClient searchClient = new SearchIndexClient(
+                _searchIndexSettings.ServiceName,
+                _searchIndexSettings.BlobIndexName,
+                new SearchCredentials(_searchIndexSettings.ServiceApiKey)))
+            {
+                var results = searchClient.Documents.Search<FileSearchResponse>(content);
+
+                return results.Results.Select(x => x.Document.metadata_storage_name).FirstOrDefault();
+            }
+        }
+
+        private Guid? SearchDocument(string fileName)
+        {
+            using (SearchIndexClient searchClient = new SearchIndexClient(
+                _searchIndexSettings.ServiceName,
+                _searchIndexSettings.SqlIndexName,
+                new SearchCredentials(_searchIndexSettings.ServiceApiKey)))
+            {
+                var results = searchClient.Documents.Search<DocumentSearchResponse>(fileName);
+
+                return results.Results.Select(x => x.Document.rowguid).FirstOrDefault();
+            }
         }
     }
 }

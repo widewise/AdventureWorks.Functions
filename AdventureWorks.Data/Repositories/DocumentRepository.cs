@@ -80,7 +80,7 @@ SELECT convert(nvarchar(20), @DocumentNode.GetDescendant((SELECT MAX([DocumentNo
             document.Revision = result.Revision.ToString();
             document.ChangeNumber = Convert.ToInt32(result.ChangeNumber);
             document.Status = Convert.ToInt32(result.Status);
-            document.DocumentSummary = result.DocumentSummary.ToString();
+            document.DocumentSummary = result.DocumentSummary?.ToString();
             document.DocumentData = (byte[])result.DocumentData;
             document.Id = Guid.Parse(result.Id.ToString());
             document.ModifiedDate = Convert.ToDateTime(result.ModifiedDate);

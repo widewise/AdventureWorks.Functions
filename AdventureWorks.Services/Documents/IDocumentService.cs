@@ -8,6 +8,6 @@ namespace AdventureWorks.Services.Documents
     {
         Guid Create(DocumentCreateParameters parameters);
 
-        Document Get(string fileName, SqlHierarchyId? node, Guid? id);
+        Document Get(string fileName, string content, SqlHierarchyId? node, Guid? id);
     }
 }
